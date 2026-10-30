@@ -1,0 +1,4 @@
+Contact: mailto:merkhet.support@gmail.com
+Expires: 2027-12-31T00:00:00.000Z
+Preferred-Languages: en, ar
+Policy: There is no Waqti server: please report problems with links, shared lists, backups or the app itself by email. We reply within 7 days.

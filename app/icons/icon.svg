@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Merkhet icon (master). A 24-hour dial; the North Star at the meridian; the merkhet's
+       plumb line hanging from it (how Egyptian astronomers sighted stars to tell the hours
+       of the night); and a check mark for a habit done. PNGs in this folder are rendered from it. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#11857b"/>
+      <stop offset="1" stop-color="#0a524c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.2" r="0.35">
+      <stop offset="0" stop-color="#ffd76a" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#ffd76a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="512" cy="212" r="190" fill="url(#glow)"/>
+  <path d="M 452.6 188.4 A 330 330 0 1 0 571.4 188.4" fill="none" stroke="#fff" stroke-width="36" stroke-linecap="round"/>
+  <g stroke="#fff" stroke-linecap="round" transform="translate(512 512)">
+    <g stroke-width="9" stroke-opacity=".85">
+      <line y1="-282" y2="-262" transform="rotate(15)"/><line y1="-282" y2="-262" transform="rotate(30)"/><line y1="-282" y2="-262" transform="rotate(45)"/>
+      <line y1="-282" y2="-262" transform="rotate(60)"/><line y1="-282" y2="-262" transform="rotate(75)"/><line y1="-282" y2="-262" transform="rotate(105)"/>
+      <line y1="-282" y2="-262" transform="rotate(120)"/><line y1="-282" y2="-262" transform="rotate(135)"/><line y1="-282" y2="-262" transform="rotate(150)"/>
+      <line y1="-282" y2="-262" transform="rotate(165)"/><line y1="-282" y2="-262" transform="rotate(195)"/><line y1="-282" y2="-262" transform="rotate(210)"/>
+      <line y1="-282" y2="-262" transform="rotate(225)"/><line y1="-282" y2="-262" transform="rotate(240)"/><line y1="-282" y2="-262" transform="rotate(255)"/>
+      <line y1="-282" y2="-262" transform="rotate(285)"/><line y1="-282" y2="-262" transform="rotate(300)"/><line y1="-282" y2="-262" transform="rotate(315)"/>
+      <line y1="-282" y2="-262" transform="rotate(330)"/><line y1="-282" y2="-262" transform="rotate(345)"/>
+    </g>
+    <g stroke-width="22">
+      <line y1="-284" y2="-238" transform="rotate(90)"/><line y1="-284" y2="-238" transform="rotate(180)"/><line y1="-284" y2="-238" transform="rotate(270)"/>
+    </g>
+  </g>
+  <line x1="512" y1="270" x2="512" y2="440" stroke="#ffd76a" stroke-width="11" stroke-linecap="round"/>
+  <path d="M 512 430 L 534 462 L 512 494 L 490 462 Z" fill="#ffd76a"/>
+  <g transform="translate(512 196) scale(1.3) translate(-512 -196)">
+    <path d="M 512 128 C 520 176 532 188 580 196 C 532 204 520 216 512 264 C 504 216 492 204 444 196 C 492 188 504 176 512 128 Z" fill="#ffd76a"/>
+  </g>
+  <polyline points="364,598 470,700 672,484" fill="none" stroke="#fff" stroke-width="78" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
