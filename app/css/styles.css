@@ -169,6 +169,7 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 2px 0; width
   display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 52px;
   border-radius: 14px; border: none; background: var(--accent); color: var(--on-accent); font-size: 16px; font-weight: 600; padding: 0 16px;
 }
+a.btn { text-decoration: none; }
 .btn.sec { background: var(--surface); color: var(--fg); border: 1px solid var(--border); }
 .btn.soft { background: var(--accent-soft); color: var(--accent-ink); }
 .btn.ghost { background: transparent; color: var(--accent); height: auto; padding: 6px; }

@@ -40,6 +40,7 @@ import { extractCode } from "./requests.js";
 import { extractKey } from "./lists.js";
 import { openLists } from "./ui/lists.js";
 import "./ui/life.js";
+import { isPublicWeb, viewDoor, demoBar } from "./ui/web-door.js";
 
 const app = document.getElementById("app");
 const hdr = document.getElementById("hdr");
@@ -95,6 +96,9 @@ function renderTabs() {
 }
 
 let lastDay = null, restoreChecked = false;
+// The public website: demos only (see ui/web-door.js). Set once the demo, if any, has started.
+const publicWeb = isPublicWeb();
+let doorOnly = false;
 function offerRestore(b) {
   const n = b.data.habits.filter(h => !h.archived).length;
   openOverlay(() => '<div class="ov-body ob center stack"><img src="icons/icon.svg" alt="" class="ob-logo" style="margin-inline:auto"><h1 class="ob-title">Welcome back</h1>' +
@@ -106,6 +110,7 @@ on("restore-auto", () => { const d = ui.form.b.data; closeOverlay({ all: true })
 on("restore-skip", () => { closeOverlay({ all: true }); startOnboarding(); });
 function render() {
   applyTheme();
+  if (doorOnly) { hdr.hidden = true; tabbar.hidden = true; viewDoor(app); return; }
   if (!state || !state.onboarded) {
     hdr.hidden = true; tabbar.hidden = true; app.innerHTML = "";
     if (overlayOpen()) return;
@@ -131,6 +136,7 @@ function render() {
   else viewToday(app);
   // Pages inside Me get a way back to it.
   if (TAB_OF[v] === "me") app.insertAdjacentHTML("afterbegin", '<button class="link back-me" data-action="tab" data-id="me">‹ <span>Me</span></button>');
+  if (publicWeb) app.insertAdjacentHTML("afterbegin", demoBar());
   renderTabs();
 }
 ui.render = render;
@@ -178,6 +184,7 @@ function takeLink(url) {
   return true;
 }
 function checkLinks() {
+  if (doorOnly) { render(); return; } // the door shows the link itself
   if (location.hash.includes("waqti=")) { const h = location.hash; history.replaceState(null, "", location.pathname + location.search); takeLink(h); }
   let pending = null;
   try { pending = localStorage.getItem(PENDING); } catch (e) { /* ignore */ }
@@ -225,7 +232,9 @@ initErrors();
 initEvents();
 try { load(); } catch (e) { report(e, "load"); }
 const demo = startDemo(); // "?demo=…": an example person in memory only (screenshots, smoke test)
-setLang(detectLang(state && state.settings.lang));
+doorOnly = publicWeb && !demo;
+// The website's welcome page has no saved settings: "?lang=ar" picks Arabic there.
+setLang(detectLang((state && state.settings.lang) || (doorOnly && new URLSearchParams(location.search).get("lang"))));
 // The Arabic dictionary arrives a moment after start: redraw and re-plan reminders in Arabic.
 window.addEventListener("waqti:lang-ready", () => { if (!overlayOpen()) render(); reschedule().catch(() => {}); });
 initLock();
@@ -249,7 +258,7 @@ render();
 const openedWithLink = location.hash.includes("waqti=");
 checkLinks();
 if (demo) demo.after();
-else if (!openedWithLink) maybeShowWhatsNew();
+else if (!openedWithLink && !doorOnly) maybeShowWhatsNew();
 reschedule().catch(() => {});
 detectSounds().then(() => reschedule()).catch(() => {}); // which reminder sounds are bundled (Adhan files switch on when added)
 // Returning from Microsoft sign-in?

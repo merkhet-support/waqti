@@ -841,7 +841,19 @@ export const AR = {
   "Dates follow the Coptic calendar: the Nativity Fast starts on 16 Hatour — 25 November, or 26 November in some years (2027, 2031…). If your church announces a different day, follow your church.": "التواريخ تتبع التقويم القبطي: يبدأ صوم الميلاد في 16 هاتور — 25 نوفمبر، أو 26 نوفمبر في بعض السنوات (2027، 2031…). إن أعلنت كنيستك يومًا آخر فاتبع كنيستك.",
   "A fasting calendar for every faith — Coptic, Greek and Russian Orthodox, Catholic, Sunni and Shia, Jewish and Hindu — with when each fast starts and ends.": "تقويم صوم لكل الأديان — القبطي والروم والروس الأرثوذكس والكاثوليك والسنة والشيعة واليهود والهندوس — مع موعد بدء كل صوم وانتهائه.",
   "Pick your tradition: the four Sunni schools (Hanafi Asr), or Shia Ja'fari times with joined prayers, Dua Kumayl, Muharram, Arba'een and the Nights of Qadr. The Hijri date can follow your country's moon sighting.": "اختر مذهبك: المذاهب السنية الأربعة (العصر الحنفي)، أو التوقيت الجعفري مع الجمع بين الصلاتين ودعاء كميل ومحرم والأربعين وليالي القدر. ويمكن أن يتبع التاريخ الهجري رؤية الهلال في بلدك.",
-  "Bundled reminders": "تذكيرات مجمّعة", "Monthly look-back": "نظرة شهرية", "Sunrise & sunset for every faith": "الشروق والغروب لكل الأديان", "Smarter weekly tips": "نصائح أسبوعية أذكى"
+  "Bundled reminders": "تذكيرات مجمّعة", "Monthly look-back": "نظرة شهرية", "Sunrise & sunset for every faith": "الشروق والغروب لكل الأديان", "Smarter weekly tips": "نصائح أسبوعية أذكى",
+  // The public website (ui/web-door.js)
+  "Waqti lives on your phone": "«وقتي» يعيش على هاتفك", "Your habits, tasks and prayers, on your clock. Free, private, no account.": "عاداتك ومهامك وصلاتك… على ساعتك. مجاني وخاص وبلا حساب.",
+  "Someone sent you a Waqti request or list": "أرسل لك أحدهم طلبًا أو قائمة من «وقتي»", "It opens in the Waqti app on your phone, where your data stays private.": "يُفتح في تطبيق «وقتي» على هاتفك، حيث تبقى بياناتك خاصة.",
+  "Open in the Waqti app": "افتح في تطبيق «وقتي»", "Copy the link": "انسخ الرابط", "Or open Waqti → Me → Requests & people, and paste it there.": "أو افتح «وقتي» ← أنا ← الطلبات والأشخاص، والصقه هناك.",
+  "Get Waqti on Google Play": "احصل على «وقتي» من Google Play", "The Android app is coming soon.": "تطبيق أندرويد قادم قريبًا.", "iPhone after that.": "ثم آيفون بعده.",
+  "Try a demo": "جرّب نسخة تجريبية", "Set up your own day": "جهّز يومك أنت", "Try the full setup — nothing is saved": "جرّب الإعداد كاملًا — لا شيء يُحفظ",
+  "A night-shift nurse": "ممرضة في نوبات ليلية", "4 nights on, 4 off — the day resets at sleep": "4 ليالٍ عمل و4 راحة — يبدأ اليوم من جديد عند النوم",
+  "A Muslim day in Cairo": "يوم مسلم في القاهرة", "Prayer times, Quran and Monday–Thursday fasts": "مواقيت الصلاة والقرآن وصيام الاثنين والخميس",
+  "A Coptic Orthodox day": "يوم قبطي أرثوذكسي", "Agpeya hours and the church's fasts": "صلوات الأجبية وأصوام الكنيسة",
+  "Bills, car and dates": "الفواتير والسيارة والمناسبات", "Paid and unpaid bills, oil change by km, birthdays": "فواتير مدفوعة وغير مدفوعة، تغيير الزيت بالكيلومترات، أعياد الميلاد",
+  "Demos run in your browser and are wiped when you close the page.": "النسخ التجريبية تعمل في متصفحك وتُمسح عند إغلاق الصفحة.",
+  "Waqti website": "موقع «وقتي»", "Privacy": "الخصوصية", "Terms": "الشروط", "Demo": "تجريبي", "nothing is saved": "لا شيء يُحفظ", "Get the app ›": "احصل على التطبيق ›", "Link copied": "تم نسخ الرابط"
 };
 
 const DUR = s => s.replace(/(\d+)h/g, "$1س").replace(/(\d+)m\b/g, "$1د");

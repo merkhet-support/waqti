@@ -1,11 +1,11 @@
 // Service worker: offline app shell + notification actions (Done / Snooze).
-const CACHE = "waqti-v2.12.3";
+const CACHE = "waqti-v2.12.4";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest", "css/styles.css", "fonts/fonts.css", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png",
   "sounds/waqti_chime.wav", "sounds/church_bell.wav",
   "js/app.js", "js/config.js", "js/i18n.js", "js/i18n-ar.js", "js/backup.js", "js/errors.js", "js/util.js", "js/dates.js", "js/store.js", "js/routine.js", "js/prayer.js", "js/hijri.js", "js/faith.js",
   "js/schedule.js", "js/reminders.js", "js/notify.js", "js/tasks.js", "js/ics.js", "js/calendars.js", "js/msgraph.js", "js/health.js", "js/templates.js", "js/emoji-data.js",
-  "js/colors.js", "js/lists.js", "js/pro.js", "js/qibla.js", "js/rate.js", "js/requests.js", "js/review.js", "js/sounds.js", "js/widgets.js", "js/seasons.js", "js/hebrew.js", "js/lunar.js", "js/fasting.js", "js/quits.js", "js/sleep.js", "js/ui/plan.js", "js/ui/me.js", "js/ui/share.js", "js/lock.js", "js/demo.js", "js/occasions.js", "js/cycle.js", "js/ui/life.js",
+  "js/colors.js", "js/lists.js", "js/pro.js", "js/qibla.js", "js/rate.js", "js/requests.js", "js/review.js", "js/sounds.js", "js/widgets.js", "js/seasons.js", "js/hebrew.js", "js/lunar.js", "js/fasting.js", "js/quits.js", "js/sleep.js", "js/ui/plan.js", "js/ui/me.js", "js/ui/share.js", "js/lock.js", "js/demo.js", "js/occasions.js", "js/cycle.js", "js/ui/life.js", "js/ui/web-door.js",
   "js/ui/core.js", "js/ui/components.js", "js/ui/emoji-picker.js", "js/ui/editor.js", "js/ui/routine-form.js", "js/ui/faith-form.js",
   "js/ui/onboarding.js", "js/ui/today.js", "js/ui/habit-detail.js", "js/ui/quit.js", "js/ui/habits.js", "js/ui/insights.js",
   "js/ui/faith-view.js", "js/ui/settings.js", "js/ui/tasks-ui.js", "js/ui/calendar.js", "js/ui/connections.js",

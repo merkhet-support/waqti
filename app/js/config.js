@@ -16,7 +16,11 @@ export const CONFIG = {
   privacyUrl: "https://merkhet-support.github.io/waqti/privacy-policy.html",
   termsUrl: "https://merkhet-support.github.io/waqti/terms.html",
   // Where request and list links point: the hosted web app, so people without Waqti can open them.
+  // At this address the app is demo-only (ui/web-door.js); the full app runs in the phone app.
   shareBase: "https://merkhet-support.github.io/waqti/app/",
+  // The Google Play listing, once it exists (e.g. "https://play.google.com/store/apps/details?id=…").
+  // Empty: the website says "coming soon".
+  playUrl: "",
   supportEmail: "merkhet.support@gmail.com",
   // Who checked the fasting and prayer calendars — shown under the fasting calendar once filled in,
   // e.g. [{ name: "Fr. …", role: "Coptic Orthodox priest, Cairo", covers: "Coptic fasts" }]. Real people only.
