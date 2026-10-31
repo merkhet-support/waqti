@@ -7,7 +7,7 @@ import { today, addDays, startOfWeek, keyOf, fromKey, daysBetween, fmtDate, fmtT
 import { isScheduled, status, tap, canLog, progressLabel, currentStreak, bestStreak as bestStreakOf, target, value, dayScore, streakUnit, streakAtRisk, dayPaused, pauseOn, restDaysLeft, isMedicine, excusable, excusedOn } from "../schedule.js";
 import { primaryMinute } from "../reminders.js";
 import { sleepFor, isWorkDay, hasWork, daySection, greetingFor } from "../routine.js";
-import { prayerMinutes } from "../faith.js";
+import { prayerMinutes, AGPEYA } from "../faith.js";
 import { PRAYERS, CITIES } from "../prayer.js";
 import { hijriLabel, hijri } from "../hijri.js";
 import { reminderMinutes } from "../reminders.js";
@@ -15,7 +15,7 @@ import { lifeCards } from "./life.js";
 import { quitDays } from "./quit.js";
 import { permission, platform } from "../notify.js";
 import { on, ui, openSheet, closeSheet } from "./core.js";
-import { ring, check, emptyCard, proTag, proSheet } from "./components.js";
+import { ring, check, emptyCard, proTag, proSheet, doneFold } from "./components.js";
 import { canUse, showProTag } from "../pro.js";
 import { openHabit } from "./habit-detail.js";
 import { tasksOn } from "../tasks.js";
@@ -34,34 +34,48 @@ let selDay = null;
 let notifyState = "default";
 export function resetSelDay() { selDay = null; }
 
-// The prayer whose time is running now, if it isn't marked yet: "Dhuhr is due — until Asr 3:53 PM".
-// Handy after sleeping through a prayer time (e.g. Dhuhr for night-shift workers).
-function prayerDue() {
-  const f = state.profile.faith;
-  if (!f || f.religion !== "muslim") return "";
-  const now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
-  let base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let pt = prayerMinutes(base);
-  let id;
-  if (nm < pt.fajr) { base = addDays(base, -1); pt = prayerMinutes(base); id = "isha"; }
-  else if (nm < pt.sunrise) id = "fajr";
-  else if (nm < pt.dhuhr) return "";
-  else if (nm < pt.asr) id = "dhuhr";
-  else if (nm < pt.maghrib) id = "asr";
-  else if (nm < pt.isha) id = "maghrib";
-  else id = "isha";
-  const h = activeHabits().find(x => x.source === "faith:" + id);
-  if (!h) return "";
-  const startedAt = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, pt[id]);
-  const day = habitDayOf(startedAt.getTime());
-  if (status(h, day) !== "open") return "";
-  const next = { fajr: "sunrise", dhuhr: "asr", asr: "maghrib", maghrib: "isha", isha: "fajr" }[id];
-  const endPt = id === "isha" ? prayerMinutes(addDays(base, 1)).fajr : pt[next];
-  const endName = next === "sunrise" ? "Sunrise" : PRAYERS.find(p => p.id === next).name;
-  const name = PRAYERS.find(p => p.id === id).name;
-  return '<div class="card pad row prayer-due"><span class="emo" style="font-size:24px">🕌</span><div class="grow"><div class="bold small">' + name + " is due now</div>" +
-    '<div class="tiny muted">Time lasts until ' + endName + " · " + fmtTime(endPt) + "</div></div>" +
-    check(false, 'data-action="log-prayer" data-id="' + h.id + '" data-day="' + keyOf(day) + '" aria-label="Mark prayed"') + "</div>";
+/* ---------- prayers: one strip, other faith habits as chips ---------- */
+// A row for every prayer, adhkar and fast crowded Today (tested with a Muslim user), so with two or
+// more prayers on a day they share one card: a circle each, in their own order (Fajr → Isha, the
+// Agpeya hours, simple prayer times), and the rest of the faith habits become chips under it.
+const STRIP = PRAYERS.map(p => p.id).concat(AGPEYA.map(a => "agpeya-" + a.id));
+const faithKey = h => /^faith:/.test(h.source || "") ? h.source.slice(6) : null;
+const stripRank = h => { const k = faithKey(h); if (k == null) return -1; const i = STRIP.indexOf(k); return i >= 0 ? i : /^pray-\d+$/.test(k) ? 100 + +k.slice(5) : -1; };
+// "Fajr prayer" → "Fajr", "Prime (1st hour)" → "1st hour"
+const shortName = h => { const p = h.name.match(/\(([^)]+)\)/); return p ? p[1] : h.name.replace(/ prayer$/, ""); };
+
+function faithCard(list, d) {
+  const strip = list.filter(h => stripRank(h) >= 0).sort((a, b) => stripRank(a) - stripRank(b));
+  if (strip.length < 2) return { html: "", ids: new Set() };
+  const loggable = canLog(d), now = Date.now();
+  const pt = strip.some(h => PRAYERS.some(p => p.id === faithKey(h))) ? prayerMinutes(d) : null;
+  const minuteOf = h => pt && pt[faithKey(h)] != null ? pt[faithKey(h)] : primaryMinute(h, d);
+  // Chips in the order of the prayer day (from Fajr / the first hour, not from waking), untimed last.
+  const start = minuteOf(strip[0]) ?? toMin(sleepFor(d).wake), when = h => { const m = primaryMinute(h, d); return m == null ? 9999 : (m - start + 1440) % 1440; };
+  const extras = list.filter(h => faithKey(h) != null && stripRank(h) < 0).sort((a, b) => when(a) - when(b));
+  // The prayer due now: the latest whose time has come (Fajr only until sunrise).
+  let cur = null;
+  if (daysBetween(d, today()) === 0) strip.forEach(h => { const m = minuteOf(h); if (m != null && momentFor(d, m).getTime() <= now) cur = h; });
+  if (cur && pt && faithKey(cur) === "fajr" && momentFor(d, pt.sunrise).getTime() <= now) cur = null;
+  const done = strip.filter(h => status(h, d) === "done").length;
+  const cells = strip.map(h => {
+    const st = status(h, d), on = st === "done", m = minuteOf(h), isCur = h === cur && st === "open";
+    const sub = on ? "" : st === "skip" ? "—" : isCur ? "now" : m != null ? fmtTime(m) : "";
+    return '<div class="ps-cell' + (isCur ? " now" : "") + '">' +
+      check(on, 'data-action="log" data-id="' + h.id + '" aria-label="' + esc(h.name) + '" aria-pressed="' + on + '"' + (loggable && st !== "skip" ? "" : " disabled"), st === "skip" ? "skip" : "") +
+      '<span class="ps-name">' + esc(shortName(h)) + '</span><span class="ps-time tabnum">' + sub + "</span></div>";
+  }).join("");
+  const chips = extras.map(h => {
+    const st = status(h, d), on = st === "done" || st === "met";
+    const prog = h.type === "count" ? value(h, d) + "/" + target(h) : on ? "✓" : "";
+    return '<button class="chip fchip' + (on ? " on" : "") + '" data-action="log" data-id="' + h.id + '" aria-pressed="' + on + '"' + (loggable && st !== "skip" ? "" : " disabled") + '>' +
+      '<span class="emo">' + h.emoji + "</span> <span>" + esc(h.name) + "</span>" + (prog ? ' <span class="tabnum">' + prog + "</span>" : "") + "</button>";
+  }).join("");
+  const icon = state.profile.faith && state.profile.faith.religion === "christian" ? "🙏" : "🕌";
+  const html = '<div class="card pad pstrip"><button class="spread link" data-action="tab" data-id="faith" style="width:100%;color:inherit">' +
+    '<span class="bold small">' + icon + " <span>Prayers</span></span>" + '<span class="small muted tabnum">' + done + " / " + strip.length + ' <span class="faint">›</span></span></button>' +
+    '<div class="ps-row' + (strip.length > 5 ? " many" : "") + '">' + cells + "</div>" + (chips ? '<div class="ps-chips">' + chips + "</div>" : "") + "</div>";
+  return { html, ids: new Set(strip.concat(extras).map(h => h.id)) };
 }
 
 // "⭐ Top 3: 2 of 3" — with long lists a perfect day is rare, so your starred habits get their own goal.
@@ -163,7 +177,11 @@ export function viewToday(app) {
   const list = activeHabits().filter(h => isScheduled(h, d) || status(h, d) === "done");
   const sc = dayScore(d, list);
   const pct = sc.sched ? Math.round(sc.done / sc.sched * 100) : 0;
-  let h = weekStrip(d);
+  const faith = faithCard(list, d);
+  // Finished habits and tasks fold into "✓ N done" under the week strip (prayers keep their circles).
+  const isDone = x => { const st = status(x, d); return st === "done" || st === "met"; };
+  const doneHabits = list.filter(x => !faith.ids.has(x.id) && isDone(x)), tasks = tasksOn(d), doneTasks = tasks.filter(x => x.done);
+  let h = weekStrip(d) + doneFold(doneHabits.length + doneTasks.length, doneHabits.map(x => habitRow(x, d)).join("") + doneTasks.map(x => taskRow(x, d)).join(""));
 
   if (!state.settings.notify.enabled && notifyState !== "denied" && platform() !== "unsupported" && daysBetween(d, t) === 0) {
     h += '<button class="card pad row" data-action="open-notify" style="text-align:left;border-color:var(--amber-line);background:var(--amber-soft);font:inherit;width:100%"><span class="emo" style="font-size:22px">🔔</span><span class="grow"><span class="bold small" style="display:block">Turn on reminders</span><span class="tiny muted">So you never miss a prayer, a dose or a bedtime.</span></span><span class="faint">›</span></button>';
@@ -177,21 +195,22 @@ export function viewToday(app) {
     '<div class="grow"><div class="sect-title">' + sc.done + " of " + sc.sched + " done</div>" +
     '<div class="small muted">' + (pct === 100 && sc.sched ? "Perfect day — keep it going 🔥" : sc.sched ? (sc.sched - sc.done) + " to go · wake " + fmtTime(sl.wake) + " · bed " + fmtTime(sl.bed) : "Nothing scheduled") + "</div>" +
     topLine(list, d) + (daysBetween(d, t) === 0 ? nextUp(list, d) + nextPrayerLine() : "") + "</div></div></div>";
-  if (daysBetween(d, t) === 0) h += welcomeCard(list, t) + comebackCard() + drowsyCard(t) + sleepCard(t) + shortSleepCard(t) + ramadanMedCard(t) + lifeCards(t) + restControls(t) + requestsCard() + prayerDue() + reviewCard() + connectCard() + top3Card();
+  if (daysBetween(d, t) === 0) h += welcomeCard(list, t) + comebackCard() + drowsyCard(t) + sleepCard(t) + shortSleepCard(t) + ramadanMedCard(t) + lifeCards(t) + restControls(t) + requestsCard() + reviewCard() + connectCard() + top3Card();
+  h += faith.html;
 
   // Meetings and one-off tasks for this day
   const evs = eventsOn(d).filter(e => e.allDay || e.end > Date.now() - 3600000 || daysBetween(d, t) !== 0);
   if (evs.length) h += '<div class="group-label"><span class="eyebrow">Meetings · ' + evs.length + '</span><span class="line"></span></div>' + evs.map(eventRow).join("");
-  const tasks = tasksOn(d);
   h += '<div class="group-label"><span class="eyebrow">Tasks' + (tasks.length ? " · " + tasks.filter(x => !x.done).length + " to do" : "") + '</span><span class="line"></span></div>' +
-    (daysBetween(d, t) === 0 ? listsStrip() : "") + tasks.map(x => taskRow(x, d)).join("") + quickAdd(d);
+    (daysBetween(d, t) === 0 ? listsStrip() : "") + tasks.filter(x => !x.done).map(x => taskRow(x, d)).join("") + quickAdd(d);
 
+  const left = list.filter(x => !faith.ids.has(x.id) && !isDone(x));
   if (!list.length) {
     h += emptyCard("🌱", "No habits for this day", "Tap + to add one — daily, a few times a week, or every few weeks.");
   } else {
     const wake = toMin(sl.wake);
     const withTime = [], anytime = [];
-    list.forEach(x => { const m = primaryMinute(x, d); (m == null ? anytime : withTime).push({ x, m }); });
+    left.forEach(x => { const m = primaryMinute(x, d); (m == null ? anytime : withTime).push({ x, m }); });
     withTime.sort((a, b) => ((a.m - wake + 1440) % 1440) - ((b.m - wake + 1440) % 1440));
     let cur = null;
     withTime.forEach(({ x, m }) => {
@@ -400,7 +419,6 @@ function excusedBanner(t) {
     '<div class="tiny muted">Prayer and fast reminders are off and your streaks are kept. Only you see this.</div></div>' +
     '<button class="btn xs soft" data-action="excused-end">End</button></div>';
 }
-const excuseChip = t => canExcuse() && !excusedOn(t) ? '<button class="chip" data-action="excused-open">🤍 <span>Excused</span></button>' : "";
 on("excused-open", () => {
   const muslim = state.profile.faith && state.profile.faith.religion === "muslim";
   openSheet('<div class="sheet-head"><div class="sect-title">🤍 <span>Excused from prayers &amp; fasts</span></div></div><div class="sheet-body stack-sm" style="padding:0 16px 18px">' +
@@ -433,14 +451,20 @@ function restOrPause(t) {
       (p.loc ? '<div class="tiny muted">📍 <span>Prayer times for</span> <span data-no-tr>' + esc(p.loc.name) + "</span></div>" : "") + "</div>" +
       '<button class="btn xs soft" data-action="rest-end">Resume</button></div>';
   }
-  const left = restDaysLeft(t), upsell = !left && showProTag("extraRestDays");
-  return '<div class="rest-row"><button class="chip" data-action="rest-day"' + (left || upsell ? "" : " disabled") + '>😴 <span>Rest day</span> <span class="muted tabnum">(' + left + ' left)</span>' + (upsell ? proTag("extraRestDays") : "") + "</button>" +
-    '<button class="chip" data-action="pause-open">🤒 <span>Sick or travelling?</span>' + proTag("pauses") + "</button>" + excuseChip(t) + "</div>";
+  // One small chip; its sheet holds the three kinds of break (three chips here crowded Today).
+  return '<div class="rest-row"><button class="chip" data-action="break-open">🌿 <span>Taking a break?</span></button></div>';
 }
-on("rest-day", (id, el) => {
+on("break-open", () => {
+  const t = today(), left = restDaysLeft(t), upsell = !left && showProTag("extraRestDays");
+  const opt = (action, icon, title, desc, off) => '<button class="li card" data-action="' + action + '" style="border-radius:14px"' + (off ? " disabled" : "") + '><span class="lic">' + icon + '</span><span class="grow"><span class="small bold" style="display:block">' + title + '</span><span class="tiny muted">' + desc + '</span></span><span class="chev">›</span></button>';
+  openSheet('<div class="sheet-head"><div class="sect-title">Taking a break?</div></div><div class="sheet-body stack-sm" style="padding:0 16px 18px">' +
+    opt("rest-day", "😴", '<span>Rest day</span> <span class="muted tabnum">(' + left + " left)</span>" + (upsell ? proTag("extraRestDays") : ""), "Just today: habit reminders stop and streaks are safe.", !left && !upsell) +
+    opt("pause-open", "🤒", "<span>Sick or travelling</span>" + proTag("pauses"), "A few days off: reminders stop and streaks are kept.") +
+    (canExcuse() && !excusedOn(t) ? opt("excused-open", "🤍", "<span>Excused</span>", "From prayers and fasts. Private, only on this phone.") : "") + "</div>");
+});
+on("rest-day", () => {
   if (!restDaysLeft(today())) return proSheet("😴", "More rest days with Pro", "You've used this month's free rest day. Pro gives you 4 a month, so a busy week doesn't cost you your streaks.");
-  if (!el.dataset.confirm) { el.dataset.confirm = "1"; el.innerHTML = "<span>Tap again — rest today</span>"; return; }
-  state.restDays.push(keyOf(today())); save(); toast("Rest day — habit reminders are off for today 😴"); ui.render();
+  closeSheet(); state.restDays.push(keyOf(today())); save(); toast("Rest day — habit reminders are off for today 😴"); ui.render();
 });
 on("rest-end", () => {
   const k = keyOf(today());
@@ -525,10 +549,3 @@ function perfectDay(d) {
   return sc.sched > 0 && sc.done === sc.sched;
 }
 on("open-habit", id => openHabit(id, selDay || today()));
-on("log-prayer", (id, el) => {
-  const h = findHabit(id), d = fromKey(el.dataset.day);
-  if (!h || status(h, d) === "done") return;
-  tap(h, d); save();
-  toast("Prayer marked ✓");
-  ui.render();
-});

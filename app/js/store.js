@@ -78,7 +78,7 @@ export function blankState() {
     repairs: [],       // days a streak repair was used (Pro, 1 a month); the mended days live on each habit's `repaired`
     pauses: [],        // { from, to, reason: "sick" | "travel" } — no reminders, streaks kept
     excused: [],       // { from, to } — excused from prayers and fasts (free), see schedule.js → excusable
-    vehicles: [],      // { id, name, odo, odoAt } — car maintenance habits link here by h.car.vid
+    vehicles: [],      // { id, name, fuel: petrol|hybrid|electric, odo, odoAt } — car maintenance habits link here by h.car.vid
     cycle: null,       // period tracker (cycle.js), off until set up
     moods: {},         // "YYYY-MM-DD" -> 1 (low) | 2 (okay) | 3 (good)
     lists: [],         // shared family lists (lists.js)

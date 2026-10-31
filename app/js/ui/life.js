@@ -7,7 +7,7 @@ import { esc, toast, uid } from "../util.js";
 import { today, addDays, keyOf, fromKey, fmtDate, daysBetween, daysInMonth } from "../dates.js";
 import { isScheduled, status, tap, kmLeft } from "../schedule.js";
 import { on, ui, openOverlay, closeOverlay, rerenderOverlay, openSheet, closeSheet } from "./core.js";
-import { ovHead, proTag, proSheet } from "./components.js";
+import { ovHead, proTag, proSheet, seg } from "./components.js";
 import { canUse, FREE } from "../pro.js";
 import { tr } from "../i18n.js";
 import { REGIONS, region } from "../occasions.js";
@@ -17,7 +17,19 @@ const cur = () => state.settings.currency || "EGP";
 const money = n => (+n || 0).toLocaleString() + " " + cur();
 const addMonths = (d, n) => { const x = new Date(d.getFullYear(), d.getMonth() + n, 1); x.setDate(Math.min(d.getDate(), daysInMonth(x))); return x; };
 const dateRow = (label, path, val) => '<div class="field"><label>' + label + '</label><input type="date" data-bind="' + path + '" value="' + esc(val || "") + '"></div>';
-const checkLine = (path, on, emoji, title, extra) => '<label class="checkrow"><input type="checkbox" data-bind="' + path + '"' + (on ? " checked" : "") + ' data-rerender><span class="emo">' + emoji + '</span><span class="grow small bold">' + title + "</span>" + (extra || "") + "</label>";
+const checkLine = (path, on, emoji, title, extra) => '<label class="checkrow"><input type="checkbox" data-bind="' + path + '"' + (on ? " checked" : "") + ' data-rerender><span class="emo">' + emoji + '</span><span class="grow"><span class="small bold" style="display:block">' + title + "</span>" + (extra || "") + "</span></label>";
+
+// "Add your own" at the bottom of a pack: lines the person fills in (empty to start); "+ Add another"
+// adds a line. `fields(o, path)` draws one line's inputs; lines left without a name are ignored.
+const ownCard = (f, fields, hint) => '<div class="card pad stack-xs"><div class="small bold">Add your own</div>' +
+  f.own.map((o, i) => '<div class="row" style="gap:6px;flex-wrap:wrap">' + fields(o, "own." + i) + "</div>").join("") +
+  (hint ? '<div class="hint">' + hint + "</div>" : "") +
+  '<button type="button" class="link small" data-action="own-add" style="align-self:flex-start">+ Add another</button></div>';
+on("own-add", () => { ui.form.own.push({}); rerenderOverlay(); });
+const ownList = f => (f.own || []).filter(o => (o.name || "").trim()).map(o => Object.assign({}, o, { name: o.name.trim().slice(0, 40) }));
+const ownName = (path, o, eg) => '<input class="input" data-bind="' + path + '.name" value="' + esc(o.name || "") + '" placeholder="' + esc(tr(eg)) + '" maxlength="40" style="flex:1 1 100%;min-width:0">';
+const ownNum = (path, key, o, label, width) => '<input class="input sm" type="number" min="1" inputmode="numeric" data-bind="' + path + "." + key + '" value="' + esc(o[key] || "") + '" placeholder="' + esc(tr(label)) + '" aria-label="' + esc(tr(label)) + '" style="width:' + width + 'px">';
+const ownDate = (path, o) => '<input class="input sm" type="date" data-bind="' + path + '.date" value="' + esc(o.date || "") + '" aria-label="' + esc(tr("Date")) + '">';
 
 function make(over) {
   const h = newHabit(over);
@@ -48,7 +60,7 @@ on("packs-later", () => { state.meta.pendingPacks = []; save(); ui.render(); });
 on("open-packs", () => {
   closeSheet();
   setTimeout(() => openSheet('<div class="sheet-head"><div class="sect-title">Ready-made packs</div></div><div class="sheet-body stack-sm" style="padding:0 16px 18px">' +
-    pack("pack-car", "🚗", "Car", "Oil, tyres, service, licence and insurance, by date and by kilometres") +
+    pack("pack-car", "🚗", "Car", "Petrol, hybrid or electric: service, tyres, battery, licence and insurance, by date and kilometres") +
     pack("pack-bills", "🧾", "Home & bills", "Rent, electricity, internet, phone, subscriptions, credit card") +
     pack("pack-dates", "🎂", "Important dates", "Birthdays, anniversaries, Mother's and Father's Day, Valentine's") +
     pack("pack-pets", "🐾", "Pets", "Feeding, walks, vaccines, deworming, flea treatment") +
@@ -60,15 +72,26 @@ on("open-packs", () => {
 const pack = (action, icon, title, desc) => '<button class="li card" data-action="' + action + '" style="border-radius:14px"><span class="lic">' + icon + '</span><span class="grow"><span class="small bold" style="display:block">' + title + '</span><span class="tiny muted">' + desc + '</span></span><span class="chev">›</span></button>';
 
 /* ---------- car ---------- */
-const CAR_ITEMS = [
-  ["oil", "🛢️", "Oil change", 6, 5000], ["tyres", "🛞", "Tyre rotation & pressure", 6, 10000], ["service", "🔧", "Full service", 12, 15000],
-  ["brakes", "🛑", "Brake check", 12, 20000], ["battery", "🔋", "Battery check", 12, 0], ["wash", "🧽", "Car wash", 0, 0]
-];
+// [id, emoji, name, every N months, every N km (0 = by date only)] for each kind of car. Common
+// general guidance, not a maker's schedule (the pack says so). Electric: no engine oil; heavier, so
+// tyres wear faster; regenerative braking spares the pads but the brake fluid still ages.
+const FUELS = [["petrol", "⛽ Petrol / Diesel"], ["hybrid", "🔋 Hybrid"], ["electric", "⚡ Electric"]];
+const WASH = ["wash", "🧽", "Car wash", 0, 0], CABIN = ["cabin", "🌬️", "Cabin air filter", 12, 0];
+const CAR_ITEMS = {
+  petrol: [["oil", "🛢️", "Oil change", 6, 5000], ["tyres", "🛞", "Tyre rotation & pressure", 6, 10000], ["service", "🔧", "Full service", 12, 15000],
+    ["brakes", "🛑", "Brake check", 12, 20000], ["battery", "🔋", "Battery check", 12, 0], CABIN, WASH],
+  hybrid: [["oil", "🛢️", "Oil change", 12, 10000], ["tyres", "🛞", "Tyre rotation & pressure", 6, 10000], ["service", "🔧", "Full service", 12, 15000],
+    ["brakes", "🛑", "Brake check", 12, 20000], ["hv", "🔋", "Hybrid battery health check", 12, 0], ["battery", "🪫", "12V battery check", 12, 0],
+    ["coolant", "🧊", "Coolant check", 24, 0], CABIN, WASH],
+  electric: [["tyres", "🛞", "Tyre rotation & pressure", 6, 8000], ["service", "🔧", "Full service", 12, 0], ["fluid", "🛑", "Brake fluid change", 24, 0],
+    ["hv", "🔋", "High-voltage battery health check", 12, 0], ["battery", "🪫", "12V battery check", 12, 0], ["coolant", "🧊", "Battery coolant check", 24, 0],
+    ["charging", "🔌", "Charging cable & port check", 6, 0], ["software", "📲", "Software update check", 3, 0], CABIN, WASH]
+};
 on("pack-car", () => {
   closeSheet();
   if ((state.vehicles || []).length >= FREE.cars && !canUse("moreCars")) return setTimeout(() => proSheet("🚗", "More cars with Pro", "Your free plan covers one car. Pro adds every car in the family, each with its own kilometres."), 80);
-  const f = { name: tr("My car"), odo: "", licence: "", insurance: "", pick: {} };
-  CAR_ITEMS.forEach(i => { f.pick[i[0]] = i[0] !== "wash" && i[0] !== "battery"; });
+  // Packs start with nothing ticked: the person picks what applies to them.
+  const f = { name: tr("My car"), fuel: "petrol", odo: "", licence: "", insurance: "", pick: {}, own: [{}] };
   openOverlay(renderCarPack, { form: f, push: true });
 });
 function renderCarPack() {
@@ -76,22 +99,30 @@ function renderCarPack() {
   let h = ovHead('<button class="link" data-action="close">Cancel</button>', "Car", '<button class="link" data-action="car-create">Add</button>') + '<div class="ov-body">';
   h += '<div class="row"><div class="field grow"><label>Car</label><input data-bind="name" value="' + esc(f.name) + '" maxlength="30" placeholder="e.g. Corolla"></div>' +
     '<div class="field" style="width:130px"><label>Kilometres now</label><input type="number" min="0" inputmode="numeric" data-bind="odo" value="' + esc(f.odo) + '" placeholder="e.g. 45000"></div></div>';
-  h += '<div class="card pad stack-xs"><div class="small bold">Maintenance</div>' + CAR_ITEMS.map(([id, e, n, m, km]) => checkLine("pick." + id, f.pick[id], e, tr(n),
+  h += seg("fuel", FUELS.map(([v, l]) => [v, tr(l)]), f.fuel, 3);
+  h += '<div class="card pad stack-xs"><div class="small bold">Maintenance</div>' + CAR_ITEMS[f.fuel].map(([id, e, n, m, km]) => checkLine("pick." + id, f.pick[id], e, tr(n),
     '<span class="tiny muted">' + (id === "wash" ? tr("every 2 weeks") : tr("every {m} months", { m }) + (km ? " · " + km.toLocaleString() + " km" : "")) + "</span>")).join("") +
-    '<div class="hint">Whichever comes first: the date or the distance. Update the kilometres now and then from Me → your car.</div></div>';
+    '<div class="hint">Whichever comes first: the date or the distance. Update the kilometres now and then from Me → your car.</div>' +
+    '<div class="hint">Your manual or dealer knows best — change any of these to match.</div></div>';
+  h += ownCard(f, (o, p) => ownName(p, o, "e.g. Timing belt") + ownNum(p, "months", o, "months", 84) + ownNum(p, "km", o, "km", 96), "Every how many months and/or kilometres. Months left empty: once a year.");
   h += '<div class="card pad stack-xs"><div class="small bold">Renewals</div>' + dateRow(tr("Licence expires on"), "licence", f.licence) + dateRow(tr("Insurance renews on"), "insurance", f.insurance) +
     '<div class="hint">Reminded 30 days and 7 days before, every year.</div></div>';
   return h + "</div>";
 }
 on("car-create", () => {
   const f = ui.form, t = today(), odo = Math.max(0, Math.round(+f.odo || 0));
-  const v = { id: uid(), name: (f.name || "").trim() || tr("My car"), odo, odoAt: Date.now() };
+  const v = { id: uid(), name: (f.name || "").trim() || tr("My car"), fuel: f.fuel, odo, odoAt: Date.now() };
   state.vehicles.push(v);
   let n = 0;
-  CAR_ITEMS.forEach(([id, e, name, months, km]) => {
+  CAR_ITEMS[f.fuel].forEach(([id, e, name, months, km]) => {
     if (!f.pick[id]) return;
     const schedule = id === "wash" ? { kind: "interval", n: 14, start: keyOf(addDays(t, 7)) } : { kind: "months", n: months, start: keyOf(addMonths(t, months)) };
     make({ name: tr(name) + " · " + v.name, emoji: e, category: "Car", schedule, reminders: remindAt("10:00", id === "wash" ? [] : [7]), car: { vid: v.id, everyKm: km, lastOdo: odo } });
+    n++;
+  });
+  ownList(f).forEach(o => {
+    const months = Math.max(1, Math.round(+o.months || 12)), km = Math.max(0, Math.round(+o.km || 0));
+    make({ name: o.name + " · " + v.name, emoji: "🔧", category: "Car", schedule: { kind: "months", n: months, start: keyOf(addMonths(t, months)) }, reminders: remindAt("10:00", [7]), car: { vid: v.id, everyKm: km, lastOdo: odo } });
     n++;
   });
   [["licence", "🪪", "Renew car licence"], ["insurance", "🛡️", "Renew car insurance"]].forEach(([k, e, name]) => {
@@ -109,7 +140,7 @@ const BILLS = [["rent", "🏠", "Rent", 1], ["power", "⚡", "Electricity", 10],
 on("pack-bills", () => {
   closeSheet();
   const f = { pick: {}, day: {}, amount: {}, other: "", otherDay: 1, otherAmount: "" };
-  BILLS.forEach(b => { f.pick[b[0]] = ["rent", "power", "net", "phone"].includes(b[0]); f.day[b[0]] = b[3]; f.amount[b[0]] = ""; });
+  BILLS.forEach(b => { f.pick[b[0]] = false; f.day[b[0]] = b[3]; f.amount[b[0]] = ""; });
   openOverlay(renderBillsPack, { form: f, push: true });
 });
 const daySel = (path, v) => '<select class="input sm" data-bind="' + path + '" data-num style="width:74px" aria-label="Due day">' + Array.from({ length: 31 }, (_, i) => '<option value="' + (i + 1) + '"' + (+v === i + 1 ? " selected" : "") + ">" + (i + 1) + "</option>").join("") + "</select>";
@@ -137,7 +168,7 @@ const DATES = [["mom", "🎂", "Mom's birthday"], ["dad", "🎂", "Dad's birthda
 const FIXED = [["mothers", "💐", "Mother's Day", { occasion: "mothers-day" }], ["fathers", "👔", "Father's Day", { occasion: "fathers-day" }], ["valentine", "💝", "Valentine's Day", { month: 2, monthDay: 14 }]];
 on("pack-dates", () => {
   closeSheet();
-  openOverlay(renderDatesPack, { form: { d: {}, fixed: { mothers: true, fathers: false, valentine: false }, region: region(), other: "", otherDate: "" }, push: true });
+  openOverlay(renderDatesPack, { form: { d: {}, fixed: { mothers: false, fathers: false, valentine: false }, region: region(), other: "", otherDate: "" }, push: true });
 });
 function renderDatesPack() {
   const f = ui.form;
@@ -162,13 +193,14 @@ on("dates-create", () => {
 /* ---------- pets ---------- */
 on("pack-pets", () => {
   closeSheet();
-  openOverlay(renderPetsPack, { form: { name: "", kind: "dog", vaccine: "", pick: { feed: true, walk: true, vaccine: true, worm: true, flea: true, groom: false, litter: true } }, push: true });
+  openOverlay(renderPetsPack, { form: { name: "", kind: "dog", vaccine: "", pick: {}, own: [{}] }, push: true });
 });
 const PET_ITEMS = kind => [
   ["feed", "🍽️", "Feed {pet}", "twice a day"], kind === "dog" && ["walk", "🦮", "Walk {pet}", "twice a day"], kind === "cat" && ["litter", "🧹", "Clean {pet}'s litter box", "every day"],
   ["worm", "💊", "Deworm {pet}", "every 3 months"], (kind === "dog" || kind === "cat") && ["flea", "🪲", "Flea & tick treatment for {pet}", "every month"],
   kind === "dog" && ["groom", "✂️", "Groom {pet}", "every 2 months"]
 ].filter(Boolean);
+const PET_EVERY = [["daily", "Every day"], ["weekly", "Every week"], ["monthly", "Every month"], ["quarterly", "Every 3 months"], ["yearly", "Every year"]];
 function renderPetsPack() {
   const f = ui.form;
   let h = ovHead('<button class="link" data-action="close">Cancel</button>', "Pets", '<button class="link" data-action="pets-create">Add</button>') + '<div class="ov-body">';
@@ -178,6 +210,8 @@ function renderPetsPack() {
   h += '<div class="card pad stack-xs">' + PET_ITEMS(f.kind).map(([id, e, n, when]) => checkLine("pick." + id, f.pick[id], e, esc(tr(n, { pet })), '<span class="tiny muted">' + tr(when) + "</span>")).join("") +
     checkLine("pick.vaccine", f.pick.vaccine, "💉", esc(tr("{pet}'s vaccines", { pet })), '<span class="tiny muted">' + tr("every year") + "</span>") +
     (f.pick.vaccine ? dateRow(tr("Next vaccine date (from your vet)"), "vaccine", f.vaccine) : "") + "</div>";
+  h += ownCard(f, (o, p) => ownName(p, o, "e.g. Heart medicine") + '<select class="input sm" data-bind="' + p + '.every" style="width:150px" aria-label="' + esc(tr("How often")) + '">' +
+    PET_EVERY.map(([v, l]) => '<option value="' + v + '"' + ((o.every || "daily") === v ? " selected" : "") + ">" + esc(tr(l)) + "</option>").join("") + "</select>");
   h += '<div class="hint">Your vet knows best: change any of these to match what they recommend.</div>';
   return h + "</div>";
 }
@@ -194,6 +228,12 @@ on("pets-create", () => {
     make({ name: tr(name, { pet }), emoji: e, category: "Pets", type, target, unit, pet, schedule: Object.assign({ start: keyOf(t) }, schedule), reminders: { on: true, mode: "times", times, lead: lead || [], nag: 0 } });
     n++;
   });
+  ownList(f).forEach(o => {
+    const ev = o.every || "daily", months = { monthly: 1, quarterly: 3, yearly: 12 }[ev];
+    const schedule = months ? { kind: "months", n: months, start: keyOf(addMonths(t, months)) } : ev === "weekly" ? { kind: "interval", n: 7, start: keyOf(t) } : { kind: "daily", start: keyOf(t) };
+    make({ name: o.name + " · " + pet, emoji: "🐾", category: "Pets", pet, schedule, reminders: remindAt(ev === "daily" ? "09:00" : "10:00", months ? [3] : []) });
+    n++;
+  });
   if (f.pick.vaccine) {
     const d = f.vaccine ? fromKey(f.vaccine) : addMonths(t, 12);
     make({ name: tr("{pet}'s vaccines", { pet }), emoji: "💉", category: "Pets", pet, schedule: { kind: "yearly", month: d.getMonth() + 1, monthDay: d.getDate(), start: keyOf(t) }, reminders: remindAt("10:00", [14, 3]) });
@@ -203,21 +243,21 @@ on("pets-create", () => {
 });
 
 /* ---------- simple packs: health check-ups, home upkeep (every few months), documents (expiry dates) ---------- */
-// [id, emoji, name, every N months (0 = a one-time expiry date), on by default]
+// [id, emoji, name, every N months (0 = a one-time expiry date)]; nothing starts ticked
 const SIMPLE = {
   health: { title: "Health check-ups", cat: "Health", intro: "Regular check-ups, each on its own rhythm. Set the next date if you already have one booked.",
-    items: [["dentist", "🦷", "Dentist check-up", 6, true], ["checkup", "🩺", "Yearly check-up", 12, true], ["eyes", "👁️", "Eye test", 24, false], ["blood", "🩸", "Blood test", 12, false], ["skin", "🧴", "Skin check", 12, false]],
+    items: [["dentist", "🦷", "Dentist check-up", 6], ["checkup", "🩺", "Yearly check-up", 12], ["eyes", "👁️", "Eye test", 24], ["blood", "🩸", "Blood test", 12], ["skin", "🧴", "Skin check", 12]],
     note: "Your doctor knows best: change any of these to match what they recommend." },
   home: { title: "Home upkeep", cat: "Home", intro: "The jobs that only matter when they're forgotten.",
-    items: [["ac", "❄️", "Clean the AC filters", 3, true], ["filter", "🚰", "Change the water filter", 6, true], ["heater", "🔥", "Water heater check", 12, true], ["pest", "🐜", "Pest control", 6, false], ["smoke", "🔔", "Smoke alarm battery", 12, false], ["deep", "🧽", "Deep clean", 3, false]] },
+    items: [["ac", "❄️", "Clean the AC filters", 3], ["filter", "🚰", "Change the water filter", 6], ["heater", "🔥", "Water heater check", 12], ["pest", "🐜", "Pest control", 6], ["smoke", "🔔", "Smoke alarm battery", 12], ["deep", "🧽", "Deep clean", 3]] },
   docs: { title: "Documents & IDs", cat: "Documents", intro: "Fill in the expiry dates you know. You're reminded 60, 30 and 7 days before — time to book an appointment.",
     items: [["id", "🪪", "National ID", 0], ["passport", "🛂", "Passport", 0], ["licence", "🚘", "Driving licence", 0], ["residency", "🏷️", "Residency / Iqama", 0], ["visa", "✈️", "Visa", 0], ["insurance", "🏥", "Health insurance", 0]],
     note: "🔒 Private by default: only the name shows in Waqti, and the lock screen says “Waqti reminder”." }
 };
 ["health", "home", "docs"].forEach(k => on("pack-" + k, () => {
   closeSheet();
-  const f = { kind: k, pick: {}, next: {} };
-  SIMPLE[k].items.forEach(i => { f.pick[i[0]] = !!i[4]; f.next[i[0]] = ""; });
+  const f = { kind: k, pick: {}, next: {}, own: [{}] };
+  SIMPLE[k].items.forEach(i => { f.pick[i[0]] = false; f.next[i[0]] = ""; });
   openOverlay(renderSimplePack, { form: f, push: true });
 }));
 function renderSimplePack() {
@@ -229,11 +269,16 @@ function renderSimplePack() {
     ? checkLine("pick." + id, f.pick[id], e, tr(n), '<span class="tiny muted">' + (months === 12 ? tr("every year") : months === 24 ? tr("every 2 years") : tr("every {m} months", { m: months })) + "</span>") +
       (f.pick[id] ? '<div class="inline" style="padding-inline-start:34px"><span class="tiny muted">Next one (optional)</span><input class="input sm" type="date" data-bind="next.' + id + '" value="' + esc(f.next[id]) + '"></div>' : "")
     : dateRow(e + " " + tr(n) + " — " + tr("expires on"), "next." + id, f.next[id])).join("") + "</div>";
+  h += f.kind === "docs"
+    ? ownCard(f, (o, path) => ownName(path, o, "e.g. Gym card") + ownDate(path, o), "The name and the date it expires.")
+    : ownCard(f, (o, path) => ownName(path, o, f.kind === "health" ? "e.g. Hearing test" : "e.g. Generator service") + ownNum(path, "months", o, "months", 84), "Every how many months. Empty: once a year.");
   if (p.note) h += '<div class="hint">' + p.note + "</div>";
   return h + "</div>";
 }
 on("simple-create", () => {
   const f = ui.form, p = SIMPLE[f.kind], t = today(), who = (f.who || "").trim();
+  const noDate = f.kind === "docs" && ownList(f).find(o => !o.date);
+  if (noDate) { toast(tr("Add the expiry date for {name}", { name: noDate.name })); return; }
   if (who && !canUse("familyDocs")) return proSheet("🛂", "Family documents with Pro", "Your own documents are free. Pro keeps track of your spouse's, children's and parents' IDs, passports and residencies too.");
   let n = 0;
   p.items.forEach(([id, e, name, months]) => {
@@ -245,6 +290,17 @@ on("simple-create", () => {
       if (!f.next[id]) return;
       const d = fromKey(f.next[id]); // a one-time date: a yearly rule that starts and ends on it
       make({ name: tr("Renew: {doc}", { doc: tr(name) }) + (who ? " · " + who : ""), emoji: e, category: p.cat, private: true, schedule: { kind: "yearly", month: d.getMonth() + 1, monthDay: d.getDate(), start: keyOf(d), end: keyOf(d) }, reminders: remindAt("10:00", [60, 30, 7]) });
+    }
+    n++;
+  });
+  ownList(f).forEach(o => {
+    if (f.kind === "docs") {
+      if (!o.date) return;
+      const d = fromKey(o.date);
+      make({ name: tr("Renew: {doc}", { doc: o.name }) + (who ? " · " + who : ""), emoji: "📄", category: p.cat, private: true, schedule: { kind: "yearly", month: d.getMonth() + 1, monthDay: d.getDate(), start: keyOf(d), end: keyOf(d) }, reminders: remindAt("10:00", [60, 30, 7]) });
+    } else {
+      const months = Math.max(1, Math.round(+o.months || 12));
+      make({ name: o.name, emoji: f.kind === "health" ? "🩺" : "🛠️", category: p.cat, schedule: { kind: "months", n: months, start: keyOf(addMonths(t, months)) }, reminders: remindAt("10:00", [7]) });
     }
     n++;
   });

@@ -13,7 +13,7 @@ import { anchorsFor, hasWork, isWorkDay } from "../routine.js";
 import { tasksOn } from "../tasks.js";
 import { eventsOn } from "../calendars.js";
 import { on, ui, openSheet, closeSheet } from "./core.js";
-import { check } from "./components.js";
+import { check, doneFold } from "./components.js";
 import { openTaskEditor } from "./tasks-ui.js";
 
 let planDay = null;
@@ -67,6 +67,15 @@ export function viewPlan(app) {
   let h = '<div class="seg" style="--cols:2"><button type="button" class="on">Day plan</button><button type="button" data-action="tab" data-id="calendar">Month</button></div>';
   h += '<div class="spread"><button class="link" data-action="plan-day" data-id="-1" aria-label="Previous day">‹ Prev</button><button class="link small" data-action="plan-day" data-id="0">' + esc(relDay(d)) + '</button><button class="link" data-action="plan-day" data-id="1" aria-label="Next day">Next ›</button></div>';
 
+  // Finished tasks and habits leave the timeline and fold into "✓ N done"; unticking puts them back.
+  const habitDone = it => { const st = status(it.h, d); return st === "done" || st === "met"; };
+  const isDoneItem = it => (it.kind === "task" && it.t.done) || (it.kind === "habit" && habitDone(it));
+  const doneTasks = P.tasks.filter(x => x.done), doneHabits = P.items.filter(it => it.kind === "habit" && habitDone(it));
+  const doneRow = (box, label, time) => '<div class="row">' + box + '<span class="grow small muted strike-t" data-no-tr>' + label + "</span>" + (time ? '<span class="tiny muted tabnum">' + fmtTime(time) + "</span>" : "") + "</div>";
+  h += doneFold(doneTasks.length + doneHabits.length,
+    doneTasks.map(x => doneRow(check(true, 'data-action="toggle-task" data-id="' + x.id + '" aria-label="Mark not done"'), esc((x.emoji ? x.emoji + " " : "📝 ") + x.title), x.time)).join("") +
+    doneHabits.map(it => doneRow(canLog(d) ? check(true, 'data-action="plan-log" data-id="' + it.h.id + '" aria-label="Mark not done"') : "", it.h.emoji + " " + esc(it.h.name), it.m)).join(""));
+
   // Today's focus: the three most important unfinished tasks.
   const focus = P.tasks.filter(x => !x.done).sort((x, y) => (PRI[x.priority] ?? 1) - (PRI[y.priority] ?? 1) || (x.time || "99").localeCompare(y.time || "99")).slice(0, 3);
   if (focus.length) h += '<div class="card pad stack-sm"><div class="eyebrow">' + (isToday ? "Today's focus" : "Focus") + "</div>" +
@@ -86,6 +95,7 @@ export function viewPlan(app) {
   const gapRow = gp => '<div class="tl-row tl-gap"><div class="tl-time tabnum">' + fmtTime(abs(P, gp[0])) + '</div><div class="tl-body"><span class="small muted">Free · ' + fmtDuration(gp[1] - gp[0]) + "</span>" +
     (P.untimed.length && canLog(d) ? '<button class="btn xs soft" data-action="plan-fit" data-id="' + abs(P, gp[0]) + '">Put a task here</button>' : "") + "</div></div>";
   for (const it of P.items) {
+    if (isDoneItem(it)) continue;
     while (g < P.gaps.length && P.gaps[g][0] <= it.r) h += gapRow(P.gaps[g++]);
     const time = '<div class="tl-time tabnum">' + fmtTime(it.m) + "</div>";
     if (it.kind === "wake") h += '<div class="tl-row tl-mark">' + time + '<div class="tl-body small bold">☀️ <span>Wake up</span></div></div>';

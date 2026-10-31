@@ -853,7 +853,26 @@ export const AR = {
   "A Coptic Orthodox day": "يوم قبطي أرثوذكسي", "Agpeya hours and the church's fasts": "صلوات الأجبية وأصوام الكنيسة",
   "Bills, car and dates": "الفواتير والسيارة والمناسبات", "Paid and unpaid bills, oil change by km, birthdays": "فواتير مدفوعة وغير مدفوعة، تغيير الزيت بالكيلومترات، أعياد الميلاد",
   "Demos run in your browser and are wiped when you close the page.": "النسخ التجريبية تعمل في متصفحك وتُمسح عند إغلاق الصفحة.",
-  "Waqti website": "موقع «وقتي»", "Privacy": "الخصوصية", "Terms": "الشروط", "Demo": "تجريبي", "nothing is saved": "لا شيء يُحفظ", "Get the app ›": "احصل على التطبيق ›", "Link copied": "تم نسخ الرابط"
+  "Waqti website": "موقع «وقتي»", "Privacy": "الخصوصية", "Terms": "الشروط", "Demo": "تجريبي", "nothing is saved": "لا شيء يُحفظ", "Get the app ›": "احصل على التطبيق ›", "Link copied": "تم نسخ الرابط",
+  // Today: the prayer strip and the break sheet
+  "1st hour": "باكر", "3rd hour": "الثالثة", "6th hour": "السادسة", "9th hour": "التاسعة", "11th hour": "الغروب", "12th hour": "النوم",
+  "Taking a break?": "تحتاج استراحة؟", "done": "تم",
+  // Packs: "Add your own"
+  "Add your own": "أضف بنفسك", "+ Add another": "+ أضف آخر", "km": "كم", "Every week": "كل أسبوع", "Every month": "كل شهر", "Every 3 months": "كل 3 أشهر",
+  "e.g. Timing belt": "مثلًا: سير الكاتينة", "e.g. Heart medicine": "مثلًا: دواء القلب", "e.g. Gym card": "مثلًا: كارنيه النادي", "e.g. Hearing test": "مثلًا: فحص السمع", "e.g. Generator service": "مثلًا: صيانة المولد",
+  "Every how many months and/or kilometres. Months left empty: once a year.": "كل كم شهرًا و/أو كيلومترًا. إن تركت الأشهر فارغة: مرة في السنة.",
+  "Every how many months. Empty: once a year.": "كل كم شهرًا. إن تُركت فارغة: مرة في السنة.", "The name and the date it expires.": "الاسم وتاريخ الانتهاء.",
+  "Add the expiry date for {name}": "أضف تاريخ انتهاء {name}",
+  // Car pack: petrol, hybrid, electric
+  "⛽ Petrol / Diesel": "⛽ بنزين / ديزل", "🔋 Hybrid": "🔋 هايبرد", "⚡ Electric": "⚡ كهربائية", "Cabin air filter": "فلتر هواء المكيف",
+  "Hybrid battery health check": "فحص بطارية الهايبرد", "12V battery check": "فحص بطارية 12 فولت", "Coolant check": "فحص سائل التبريد",
+  "Brake fluid change": "تغيير زيت الفرامل", "High-voltage battery health check": "فحص صحة البطارية الرئيسية", "Battery coolant check": "فحص سائل تبريد البطارية",
+  "Charging cable & port check": "فحص كابل ومنفذ الشحن", "Software update check": "التحقق من تحديث البرنامج",
+  "Your manual or dealer knows best — change any of these to match.": "دليل سيارتك أو الوكيل أدرى — عدّل أيًّا منها ليطابقه.",
+  "Petrol, hybrid or electric: service, tyres, battery, licence and insurance, by date and kilometres": "بنزين أو هايبرد أو كهربائية: الصيانة والإطارات والبطارية والرخصة والتأمين، بالتاريخ والكيلومترات", "Sick or travelling": "مريض أو مسافر",
+  "Just today: habit reminders stop and streaks are safe.": "اليوم فقط: تتوقف تذكيرات العادات وتبقى سلاسلك محفوظة.",
+  "A few days off: reminders stop and streaks are kept.": "أيام قليلة: تتوقف التذكيرات وتبقى سلاسلك محفوظة.",
+  "From prayers and fasts. Private, only on this phone.": "من الصلاة والصيام. خاص، على هذا الهاتف فقط."
 };
 
 const DUR = s => s.replace(/(\d+)h/g, "$1س").replace(/(\d+)m\b/g, "$1د");

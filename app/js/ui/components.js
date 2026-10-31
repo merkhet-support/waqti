@@ -3,7 +3,8 @@
 
 import { esc, CHECK_SVG } from "../util.js";
 import { DAY_MIN, DAY_LONG, weekOrder } from "../dates.js";
-import { openSheet } from "./core.js";
+import { openSheet, on, ui } from "./core.js";
+import { state, save } from "../store.js";
 import { showProTag } from "../pro.js";
 
 // A small "Pro" tag next to something that needs Pro — only once purchases exist.
@@ -26,6 +27,18 @@ export function ring(pct, size = 76) {
 export function check(on, attrs, cls) {
   return '<button class="check' + (on ? " on" : "") + (cls ? " " + cls : "") + '" ' + attrs + ">" + CHECK_SVG + "</button>";
 }
+
+// "✓ 6 done" under the day switcher on Today and Plan: finished items fold away so the list shows
+// what's left. Closed at first; once opened it stays open (state.meta.doneOpen) until closed.
+// Unticking an item inside sends it back to its place.
+export function doneFold(n, rows) {
+  if (!n) return "";
+  const open = !!(state && state.meta && state.meta.doneOpen);
+  return '<div class="card done-fold"><button class="spread done-head" data-action="done-fold" aria-expanded="' + open + '">' +
+    '<span class="small bold">✓ <span class="tabnum">' + n + "</span> <span>done</span></span><span class=\"faint\" aria-hidden=\"true\">" + (open ? "▴" : "▾") + "</span></button>" +
+    (open ? '<div class="done-body">' + rows + "</div>" : "") + "</div>";
+}
+on("done-fold", () => { state.meta.doneOpen = !state.meta.doneOpen; save(); ui.render(); });
 
 // Segmented control bound to `path`.
 export function seg(path, options, current, cols, extra) {

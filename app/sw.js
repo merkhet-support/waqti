@@ -1,5 +1,5 @@
 // Service worker: offline app shell + notification actions (Done / Snooze).
-const CACHE = "waqti-v2.12.4";
+const CACHE = "waqti-v2.12.9";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest", "css/styles.css", "fonts/fonts.css", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png",
   "sounds/waqti_chime.wav", "sounds/church_bell.wav",

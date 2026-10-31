@@ -672,6 +672,29 @@ header { background: color-mix(in srgb, var(--bg) 65%, transparent); -webkit-bac
 .rest-row .chip { min-height: 40px; font-size: 12.5px; }
 .rest-row .chip:disabled { opacity: .5; }
 .rest-banner { border-color: var(--amber-line); background: var(--amber-soft); }
+/* "✓ N done": finished items folded under the day switcher */
+.done-fold { padding: 0; }
+.done-head { width: 100%; padding: 12px 15px; background: none; border: none; font: inherit; color: inherit; min-height: 46px; }
+.done-head .bold { color: var(--accent-ink, var(--accent)); }
+.done-body { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.done-body > .row { padding-inline: 3px; }
+/* Prayer strip: a circle per prayer, other faith habits as chips */
+.pstrip { display: flex; flex-direction: column; gap: 12px; }
+.ps-row { display: flex; justify-content: space-between; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.ps-cell { flex: 1 0 52px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; border-radius: 12px; min-width: 0; }
+.ps-cell.now { background: var(--accent-soft); }
+.ps-cell.now .check:not(.on) { border-color: var(--accent); border-width: 2.5px; }
+.ps-name { font-size: 12.5px; font-weight: 600; text-align: center; white-space: nowrap; }
+.ps-time { font-size: 11px; color: var(--muted); white-space: nowrap; min-height: 1.3em; }
+/* All seven Agpeya hours: narrower cells, labels may wrap */
+.ps-row.many { gap: 2px; }
+.ps-row.many .ps-cell { flex: 1 1 0; padding-inline: 0; }
+.ps-row.many :is(.ps-name, .ps-time) { white-space: normal; font-size: 10.5px; line-height: 1.25; text-align: center; }
+.ps-cell.now .ps-time { color: var(--accent-ink, var(--accent)); font-weight: 700; }
+.ps-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border); }
+.ps-chips .chip { min-height: 36px; font-size: 12.5px; padding: 0 11px; }
+.ps-chips .chip.on { padding: 0 10px; }
+.ps-chips .chip:disabled { opacity: .5; }
 /* Mood */
 .mood-card { display: flex; flex-direction: column; gap: 10px; }
 .mood-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

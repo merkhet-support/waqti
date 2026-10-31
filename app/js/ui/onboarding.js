@@ -6,7 +6,7 @@ import { blankState, defaultSchedule, defaultSettings, setState, state, newHabit
 import { esc, toast, deepClone } from "../util.js";
 import { fmtTime, fmtDuration, fmtDate, addDays, keyOf, toMin, fromMin, today, DAY_SHORT, weekOrder } from "../dates.js";
 import { suggestDayStart } from "../routine.js";
-import { defaultFaith, applyFaith, applyRoutine } from "../faith.js";
+import { blankFaith, applyFaith, applyRoutine } from "../faith.js";
 import { TEMPLATES, FEATURED, GOALS } from "../templates.js";
 import { celebrate } from "./celebrate.js";
 import { WHATS_NEW_ID } from "./whats-new.js";
@@ -44,9 +44,8 @@ export function startOnboarding() {
   const sch = defaultSchedule();
   const settings = defaultSettings();
   settings.dayStartHour = suggestDayStart(sch);
-  const picks = {};
-  TEMPLATES.forEach((t, i) => { if (t.starter) picks[i] = true; });
-  openOverlay(renderOb, { form: { step: 0, name: "", schedule: sch, settings, faith: defaultFaith(null), picks, custom: {}, editing: null, shown: FEATURED.length, routine: true, perm: null, goals: [], pickedFor: null, door: null, packs: [] } });
+  // Nothing starts ticked: every habit, prayer and pack is the person's own pick (goals only reorder the list).
+  openOverlay(renderOb, { form: { step: 0, name: "", schedule: sch, settings, faith: blankFaith(null), picks: {}, custom: {}, editing: null, shown: FEATURED.length, routine: true, perm: null, goals: [], door: null, packs: [] } });
   loadInvite();
 }
 
@@ -417,9 +416,9 @@ on("ob-lang", id => { setLang(id); rerenderOverlay(); });
 // The door sets defaults that the later steps show and let you change.
 on("ob-door", id => {
   const d = ui.form; d.door = id;
-  if (id === "worship" && d.faith.religion !== "muslim") { d.faith = defaultFaith("muslim"); d.faithFromDoor = true; }
-  if (id === "church" && d.faith.religion !== "christian") { d.faith = defaultFaith("christian"); d.faith.christian.prayerMode = "agpeya"; d.faithFromDoor = true; }
-  if ((id === "habits" || id === "shift") && d.faithFromDoor) { d.faith = defaultFaith(null); d.faithFromDoor = false; }
+  if (id === "worship" && d.faith.religion !== "muslim") { d.faith = blankFaith("muslim"); d.faithFromDoor = true; }
+  if (id === "church" && d.faith.religion !== "christian") { d.faith = blankFaith("christian"); d.faith.christian.prayerMode = "agpeya"; d.faithFromDoor = true; }
+  if ((id === "habits" || id === "shift") && d.faithFromDoor) { d.faith = blankFaith(null); d.faithFromDoor = false; }
   if (id === "shift" && !d.goals.includes("sleep") && d.goals.length < 3) d.goals.push("sleep");
   rerenderOverlay();
 });
@@ -458,16 +457,6 @@ on("ob-edit-done", () => { ui.form.editing = null; rerenderOverlay(); });
 on("ob-time-reset", id => { if (ui.form.custom[id]) ui.form.custom[id].time = ""; rerenderOverlay(); });
 on("ob-next", () => {
   const d = ui.form;
-  if (d.step === GOALS_STEP) {
-    // New goals: pre-tick the top two habits for each one (instead of the general starters).
-    const key = d.goals.slice().sort().join(",");
-    if (d.goals.length && d.pickedFor !== key) {
-      d.picks = {};
-      GOALS.filter(g => d.goals.includes(g.id)).forEach(g => g.habits.slice(0, 2).forEach(n => { const i = idx(n); if (i >= 0) d.picks[i] = true; }));
-      d.pickedFor = key;
-      d.shown = Math.max(FEATURED.length, Object.keys(d.picks).length + 3);
-    }
-  }
   if (d.step === ROUTINE_STEP && d.schedule.shift !== "none" && d.schedule.shift !== "rotating" && !d.schedule.workDays.length) { toast("Pick your work days"); return; }
   if (d.step === HABITS_STEP) {
     const bad = Object.keys(d.picks).find(i => d.picks[i] && d.custom[i] && (d.custom[i].sched === "days" || d.custom[i].sched === "weeks") && !(d.custom[i].days || []).length);

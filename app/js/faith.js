@@ -75,9 +75,23 @@ export function defaultFaith(religion) {
   };
 }
 
+// Setup starts with nothing ticked: each prayer, reading, fast and special day is the person's own
+// choice. (defaultFaith stays the full set, so older saves that lack a field keep what they had.)
+export function blankFaith(religion) {
+  const f = defaultFaith(religion), off = o => Object.keys(o).forEach(k => { if (o[k] === true) o[k] = false; });
+  const m = f.muslim, c = f.christian, o = f.other;
+  [m.shia, m.occasions, m.prayers, m.extras, m.adhkar, m.fasting].forEach(off);
+  m.jumuah = false; m.quran.on = false; m.ramadan = false;
+  c.church.on = false; c.simple.times = []; c.agpeya = {}; c.bible.on = false; off(c.fasting);
+  o.times = []; [o.jewish, o.hindu, o.sikh].forEach(off); o.jewish.fasts = "none";
+  return f;
+}
+
 export function faithCfg() {
   const f = state.profile.faith || {};
-  const def = defaultFaith(f.religion);
+  const def = defaultFaith(f.religion), blank = blankFaith(f.religion);
+  // A branch never saved (e.g. choosing Islam later in the Faith tab) starts blank too.
+  ["muslim", "christian", "other"].forEach(b => { if (!f[b]) def[b] = blank[b]; });
   // Saves from before madhhabs: a Hanafi Asr means a Hanafi.
   if (f.muslim && !f.muslim.madhhab && f.muslim.asr === "hanafi") def.muslim.madhhab = "hanafi";
   // shallow-merge each branch so old saves gain new fields
